@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  os = "custom/ubuntu-20.04.1"
+
+  net_ip = "192.168.56"
+  
+  # config.vbguest.auto_update = false
+  # config.vbguest.no_install = true
+
+  config.vm.provision "shell", inline: <<-SHELL
+    apt-get update -y
+      echo "#{net_ip}.10 kernel-builder" >> /etc/hosts
+  SHELL
+
+  config.vm.define "kernel-builder" do |builder|
+    builder.vm.synced_folder ".", "/vagrant", disabled: true
+    builder.vm.provider "virtualbox" do |vb|
+        vb.memory = "8196"
+        vb.cpus = 4
+        vb.name = "kernel-builder"
+        vb.check_guest_additions = false
+    end
+  
+    builder.vm.provision "shell", path: "./setup/tools.sh"
+
+    builder.vm.box = "#{os}"
+    builder.vm.host_name = 'kernel-builder'
+    builder.vm.network "private_network", ip: "#{net_ip}.10"
+    builder.vm.synced_folder "./shared", "/shared", type: "sshfs"
+    end
+end
